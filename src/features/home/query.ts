@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery} from 'react-query';
 import {BASE_URL} from '../../constants';
 
@@ -72,9 +72,7 @@ export const RACE_TYPE_TO_CATEGORY_ID = {
 export type RaceCategory = 'horses' | 'dogs' | 'trots';
 
 export type UseNextToGoParams = {
-  count: number;
   categories: Array<RaceCategory>;
-  currentTime: number;
 };
 
 export const useNextToGo = (params: UseNextToGoParams) => {
@@ -83,51 +81,78 @@ export const useNextToGo = (params: UseNextToGoParams) => {
     [params.categories],
   );
 
+  const [races, setRaces] = useState<Array<RaceSummary>>([]);
+  const timeout = useRef<number>(0);
+
   const query = useQuery(
-    ['GetNextToGo', params.count, categoryIds],
+    ['GetNextToGo', categoryIds],
     () =>
       getNextToGo({
-        count: params.count,
+        count: 10, // API Returns races older than a minute so we need to fetch more than 5
         categoryIds,
       }),
     {
       keepPreviousData: true,
-      // Re-fetch data every 5 minutes
-      refetchInterval: 1000 * 60 * 5,
     },
   );
 
-  const {data, isFetching} = query;
+  const {data, refetch, isRefetching} = query;
 
   // Ideally some of this calculation would be done by the API
-  const races = useMemo(() => {
-    if (!data || isFetching || !categoryIds.length) {
-      return [];
+  useEffect(() => {
+    if (!data || isRefetching) {
+      return;
     }
+
     const raceIds = Object.keys(data.category_race_map).reduce<string[]>(
       (acc, category) => [...acc, ...data.category_race_map[category].race_ids],
       [],
     );
 
-    return raceIds
-      .map(raceId => {
-        return data.race_summaries[raceId];
-      })
-      .filter(
-        race =>
-          // Filter races that started over a minute ago
-          (new Date(race.advertised_start).getTime() - params.currentTime) /
-            1000 >
-          -60,
-      )
-      .sort((a, b) => {
-        return (
-          new Date(a.advertised_start).getTime() -
-          new Date(b.advertised_start).getTime()
-        );
-      })
-      .slice(0, 5);
-  }, [data, isFetching, categoryIds, params.currentTime]);
+    setRaces(
+      raceIds
+        .map(raceId => {
+          return data.race_summaries[raceId];
+        })
+        .filter(
+          race =>
+            // Filter races that started over a minute ago
+            (new Date(race.advertised_start).getTime() - new Date().getTime()) /
+              1000 >
+            -60,
+        )
+        .sort((a, b) => {
+          return (
+            new Date(a.advertised_start).getTime() -
+            new Date(b.advertised_start).getTime()
+          );
+        })
+        .slice(0, 5),
+    );
+  }, [data, isRefetching]);
+
+  useEffect(() => {
+    // Set a timeout to refetch races when the first race started a minute ago
+    if (races.length > 0) {
+      if (timeout.current) {
+        clearTimeout(timeout.current);
+      }
+      const timeToRefetch =
+        new Date(races[0].advertised_start).getTime() -
+        new Date().getTime() +
+        60 * 1000;
+
+      timeout.current = setTimeout(() => {
+        refetch();
+      }, timeToRefetch);
+    }
+
+    return () => {
+      if (timeout.current) {
+        clearTimeout(timeout.current);
+      }
+    };
+  }, [races, refetch]);
 
   return {...query, races};
 };

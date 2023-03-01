@@ -25,10 +25,9 @@ export function Home() {
   );
   const [currentTime, setCurrentTime] = useState(new Date().getTime());
 
-  const {races, isFetching} = useNextToGo({
+  const {races, isLoading} = useNextToGo({
     count: 10,
     categories,
-    currentTime,
   });
 
   useEffect(() => {
@@ -158,7 +157,7 @@ export function Home() {
           </TouchableOpacity>
         </View>
       </View>
-      {isFetching ? (
+      {isLoading ? (
         <ActivityIndicator style={styles.indicator} />
       ) : (
         <FlatList
@@ -212,6 +211,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemText: {
+    color: COLOURS.black,
     fontWeight: '600',
   },
   raceNumber: {
