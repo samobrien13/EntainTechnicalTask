@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -14,57 +15,26 @@ import {
   RaceSummary,
   RaceCategory,
 } from './query';
-import {useEffect, useMemo, useState} from 'react';
-import {COLOURS} from '../../constants';
-
-const Separator = () => <View style={styles.separator} />;
-
-const getRaceTypeIcon = (categoryId: string) => {
-  switch (categoryId) {
-    case RACE_TYPE_TO_CATEGORY_ID.horses:
-      return '🏇';
-    case RACE_TYPE_TO_CATEGORY_ID.dogs:
-      return '🐕';
-    case RACE_TYPE_TO_CATEGORY_ID.trots:
-      return '🛞';
-  }
-};
+import {useEffect, useState} from 'react';
+import COLOURS from '../../colours';
+import {DogsIcon, HorsesIcon, TrotsIcon} from '../../components/icons';
+import Separator from '../../components/separator';
 
 export function Home() {
   const [categories, setCategories] = useState<UseNextToGoParams['categories']>(
     ['horses', 'dogs', 'trots'],
   );
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date().getTime());
 
-  const {data, isFetching} = useNextToGo({
-    count: 5,
+  const {races, isFetching} = useNextToGo({
+    count: 10,
     categories,
+    currentTime,
   });
-
-  const races = useMemo(() => {
-    if (!data || isFetching || !categories.length) {
-      return [];
-    }
-    const raceIds = Object.keys(data.category_race_map).reduce<string[]>(
-      (acc, category) => [...acc, ...data.category_race_map[category].race_ids],
-      [],
-    );
-
-    return raceIds
-      .map(raceId => {
-        return data.race_summaries[raceId];
-      })
-      .sort((a, b) => {
-        const aDate = new Date(a.advertised_start);
-        const bDate = new Date(b.advertised_start);
-        return aDate.getTime() - bDate.getTime();
-      })
-      .slice(0, 5);
-  }, [data, categories, isFetching]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentDate(new Date());
+      setCurrentTime(new Date().getTime());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -80,13 +50,29 @@ export function Home() {
     }
   };
 
-  const getTimeToGo = (start: string, now: Date) => {
+  const getRaceTypeIcon = (categoryId: string) => {
+    switch (categoryId) {
+      case RACE_TYPE_TO_CATEGORY_ID.horses:
+        return <HorsesIcon />;
+      case RACE_TYPE_TO_CATEGORY_ID.dogs:
+        return <DogsIcon />;
+      case RACE_TYPE_TO_CATEGORY_ID.trots:
+        return <TrotsIcon />;
+    }
+  };
+
+  const getTimeToGo = (start: string, now: number) => {
     const startDateTime = new Date(start);
-    const diff = startDateTime.getTime() - now.getTime();
-    const hours = Math.floor(diff / 1000 / 60 / 60);
-    const minutes = Math.floor((diff / 1000 / 60) % 60);
-    const seconds = Math.floor((diff / 1000) % 60);
-    console.log(hours, minutes, seconds);
+    const diff = startDateTime.getTime() - now;
+    const diffInSeconds = diff / 1000;
+    const hours = Math.floor(diffInSeconds / 60 / 60);
+    const minutesDiff = (diffInSeconds / 60) % 60;
+
+    // Round minutes up if negative, down if positive
+    const minutes =
+      minutesDiff > 0 ? Math.floor(minutesDiff) : Math.ceil(minutesDiff);
+    const seconds = Math.floor(diffInSeconds % 60);
+
     let text = '';
     if (hours > 0) {
       text = `${hours}h ${Math.abs(minutes)}m`;
@@ -97,22 +83,38 @@ export function Home() {
     } else {
       text = `${minutes}m`;
     }
-    const aboutToStart = diff < 0 || (minutes < 1 && hours < 1);
 
     return (
-      <Text style={[styles.itemText, aboutToStart && styles.aboutToStart]}>
+      <Text
+        style={[
+          styles.itemText,
+          {
+            color:
+              diffInSeconds < 60
+                ? COLOURS.red[500]
+                : diffInSeconds < 180
+                ? COLOURS.orange[500]
+                : COLOURS.black,
+          },
+        ]}>
         {text}
       </Text>
     );
   };
 
   const renderItem = (item: RaceSummary) => {
-    const timeToGo = getTimeToGo(item.advertised_start, currentDate);
+    const timeToGo = getTimeToGo(item.advertised_start, currentTime);
     return (
       <TouchableOpacity style={styles.itemContainer}>
-        <Text style={styles.itemText}>{`${item.meeting_name} R${
-          item.race_number
-        } ${getRaceTypeIcon(item.category_id)}`}</Text>
+        <View>
+          <View style={styles.itemTitleContainer}>
+            <Text style={[styles.itemText, {marginRight: 4}]}>
+              {`${item.meeting_name} (${item.venue_state})`}
+            </Text>
+            {getRaceTypeIcon(item.category_id)}
+          </View>
+          <Text style={styles.raceNumber}>{`Race ${item.race_number}`}</Text>
+        </View>
         {timeToGo}
       </TouchableOpacity>
     );
@@ -132,7 +134,7 @@ export function Home() {
               {marginRight: 2},
             ]}
             onPress={() => onCategoryPress('horses')}>
-            <Text style={styles.icon}>🏇</Text>
+            <HorsesIcon size={32} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -141,7 +143,7 @@ export function Home() {
               {marginHorizontal: 2},
             ]}
             onPress={() => onCategoryPress('dogs')}>
-            <Text style={styles.icon}>🐕</Text>
+            <DogsIcon size={32} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -150,7 +152,7 @@ export function Home() {
               {marginLeft: 2},
             ]}
             onPress={() => onCategoryPress('trots')}>
-            <Text style={styles.icon}>🛞</Text>
+            <TrotsIcon size={32} />
           </TouchableOpacity>
         </View>
       </View>
@@ -198,19 +200,20 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
   },
-  icon: {
-    fontSize: 24,
-  },
   title: {
     fontSize: 24,
     fontWeight: '600',
     color: COLOURS.white,
   },
+  itemTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   itemText: {
     fontWeight: '600',
   },
-  aboutToStart: {
-    color: COLOURS.orange[500],
+  raceNumber: {
+    color: COLOURS.indigo[500],
   },
   racesContainer: {
     flex: 1,
@@ -222,10 +225,7 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 16,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: COLOURS.gray[200],
   },
 });

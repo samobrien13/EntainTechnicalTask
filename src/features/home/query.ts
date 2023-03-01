@@ -74,6 +74,7 @@ export type RaceCategory = 'horses' | 'dogs' | 'trots';
 export type UseNextToGoParams = {
   count: number;
   categories: Array<RaceCategory>;
+  currentTime: number;
 };
 
 export const useNextToGo = (params: UseNextToGoParams) => {
@@ -82,7 +83,7 @@ export const useNextToGo = (params: UseNextToGoParams) => {
     [params.categories],
   );
 
-  return useQuery(
+  const query = useQuery(
     ['GetNextToGo', params.count, categoryIds],
     () =>
       getNextToGo({
@@ -91,6 +92,42 @@ export const useNextToGo = (params: UseNextToGoParams) => {
       }),
     {
       keepPreviousData: true,
+      // Re-fetch data every 5 minutes
+      refetchInterval: 1000 * 60 * 5,
     },
   );
+
+  const {data, isFetching} = query;
+
+  // Ideally some of this calculation would be done by the API
+  const races = useMemo(() => {
+    if (!data || isFetching || !categoryIds.length) {
+      return [];
+    }
+    const raceIds = Object.keys(data.category_race_map).reduce<string[]>(
+      (acc, category) => [...acc, ...data.category_race_map[category].race_ids],
+      [],
+    );
+
+    return raceIds
+      .map(raceId => {
+        return data.race_summaries[raceId];
+      })
+      .filter(
+        race =>
+          // Filter races that started over a minute ago
+          (new Date(race.advertised_start).getTime() - params.currentTime) /
+            1000 >
+          -60,
+      )
+      .sort((a, b) => {
+        return (
+          new Date(a.advertised_start).getTime() -
+          new Date(b.advertised_start).getTime()
+        );
+      })
+      .slice(0, 5);
+  }, [data, isFetching, categoryIds, params.currentTime]);
+
+  return {...query, races};
 };
