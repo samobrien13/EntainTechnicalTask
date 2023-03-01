@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -105,7 +104,7 @@ export function Home() {
   const renderItem = (item: RaceSummary) => {
     const timeToGo = getTimeToGo(item.advertised_start, currentTime);
     return (
-      <TouchableOpacity style={styles.itemContainer}>
+      <TouchableOpacity testID="race" style={styles.itemContainer}>
         <View>
           <View style={styles.itemTitleContainer}>
             <Text style={[styles.itemText, {marginRight: 4}]}>
@@ -128,6 +127,7 @@ export function Home() {
         </View>
         <View style={styles.iconContainer}>
           <TouchableOpacity
+            testID="horses-icon"
             style={[
               styles.iconButton,
               categories.includes('horses') && styles.iconSelected,
@@ -137,6 +137,7 @@ export function Home() {
             <HorsesIcon size={32} />
           </TouchableOpacity>
           <TouchableOpacity
+            testID="dogs-icon"
             style={[
               styles.iconButton,
               categories.includes('dogs') && styles.iconSelected,
@@ -146,6 +147,7 @@ export function Home() {
             <DogsIcon size={32} />
           </TouchableOpacity>
           <TouchableOpacity
+            testID="trots-icon"
             style={[
               styles.iconButton,
               categories.includes('trots') && styles.iconSelected,
