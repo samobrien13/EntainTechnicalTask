@@ -70,6 +70,9 @@ export function Home() {
   }, []);
 
   const onCategoryPress = (category: RaceCategory) => {
+    if (categories.length === 1 && categories.includes(category)) {
+      return;
+    }
     if (categories.includes(category)) {
       setCategories(categories.filter(c => c !== category));
     } else {
@@ -83,7 +86,7 @@ export function Home() {
     const hours = Math.floor(diff / 1000 / 60 / 60);
     const minutes = Math.floor((diff / 1000 / 60) % 60);
     const seconds = Math.floor((diff / 1000) % 60);
-
+    console.log(hours, minutes, seconds);
     let text = '';
     if (hours > 0) {
       text = `${hours}h ${Math.abs(minutes)}m`;
@@ -126,6 +129,7 @@ export function Home() {
             style={[
               styles.iconButton,
               categories.includes('horses') && styles.iconSelected,
+              {marginRight: 2},
             ]}
             onPress={() => onCategoryPress('horses')}>
             <Text style={styles.icon}>🏇</Text>
@@ -134,6 +138,7 @@ export function Home() {
             style={[
               styles.iconButton,
               categories.includes('dogs') && styles.iconSelected,
+              {marginHorizontal: 2},
             ]}
             onPress={() => onCategoryPress('dogs')}>
             <Text style={styles.icon}>🐕</Text>
@@ -142,21 +147,23 @@ export function Home() {
             style={[
               styles.iconButton,
               categories.includes('trots') && styles.iconSelected,
+              {marginLeft: 2},
             ]}
             onPress={() => onCategoryPress('trots')}>
             <Text style={styles.icon}>🛞</Text>
           </TouchableOpacity>
         </View>
       </View>
-      {races?.length > 0 ? (
+      {isFetching ? (
+        <ActivityIndicator style={styles.indicator} />
+      ) : (
         <FlatList
           contentContainerStyle={styles.racesContainer}
           data={races}
           renderItem={({item}) => renderItem(item)}
           ItemSeparatorComponent={Separator}
+          ListEmptyComponent={<Text>No upcoming races</Text>}
         />
-      ) : (
-        <ActivityIndicator />
       )}
     </SafeAreaView>
   );
@@ -166,6 +173,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLOURS.orange[500],
+  },
+  indicator: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLOURS.white,
   },
   headingContainer: {
     padding: 16,
@@ -209,7 +222,7 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingVertical: 16,
   },
   separator: {
     height: 1,
