@@ -10,13 +10,17 @@ import {
 import {
   UseNextToGoParams,
   useNextToGo,
-  RACE_TYPE_TO_CATEGORY_ID,
   RaceSummary,
   RaceCategory,
 } from './query';
 import {useEffect, useState} from 'react';
 import COLOURS from '../../colours';
-import {DogsIcon, HorsesIcon, TrotsIcon} from '../../components/icons';
+import {
+  DogsIcon,
+  HorsesIcon,
+  RaceTypeIcon,
+  TrotsIcon,
+} from '../../components/icons';
 import Separator from '../../components/separator';
 
 export function Home() {
@@ -26,7 +30,6 @@ export function Home() {
   const [currentTime, setCurrentTime] = useState(new Date().getTime());
 
   const {races, isLoading} = useNextToGo({
-    count: 10,
     categories,
   });
 
@@ -45,17 +48,6 @@ export function Home() {
       setCategories(categories.filter(c => c !== category));
     } else {
       setCategories([...categories, category]);
-    }
-  };
-
-  const getRaceTypeIcon = (categoryId: string) => {
-    switch (categoryId) {
-      case RACE_TYPE_TO_CATEGORY_ID.horses:
-        return <HorsesIcon />;
-      case RACE_TYPE_TO_CATEGORY_ID.dogs:
-        return <DogsIcon />;
-      case RACE_TYPE_TO_CATEGORY_ID.trots:
-        return <TrotsIcon />;
     }
   };
 
@@ -109,7 +101,7 @@ export function Home() {
             <Text style={[styles.itemText, {marginRight: 4}]}>
               {`${item.meeting_name} (${item.venue_state})`}
             </Text>
-            {getRaceTypeIcon(item.category_id)}
+            <RaceTypeIcon categoryId={item.category_id} />
           </View>
           <Text style={styles.raceNumber}>{`Race ${item.race_number}`}</Text>
         </View>
