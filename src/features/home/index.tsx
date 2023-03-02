@@ -34,6 +34,7 @@ export function Home() {
     categories,
   });
 
+  // Creates a timer to re-render the component every second and update the countdowns
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date().getTime());

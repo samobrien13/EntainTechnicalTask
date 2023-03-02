@@ -125,8 +125,9 @@ export const useNextToGo = (params: UseNextToGoParams) => {
     );
   }, [data, isRefetching]);
 
+  // Set a timeout to refetch races when the first race started a minute ago
+  // Ensures that data is only fetched when needed
   useEffect(() => {
-    // Set a timeout to refetch races when the first race started a minute ago
     if (races.length > 0) {
       if (timeout.current) {
         clearTimeout(timeout.current);

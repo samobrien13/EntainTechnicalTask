@@ -20,3 +20,25 @@ Horse racing: category_id: '4a2788f8-e825-4d36-9894-efd4baf1cfae'
  - Uses Neds API to fetch a list of races
  - Uses Typescript
  - Has some level of testing. Full coverage isn't necessary, but there should be at least some testing for key files.
+
+## Optional
+ - Uses Redux
+ - Documentation
+
+## Trade offs
+
+### Overfetching
+
+Ideally the next-races-category-group API would only return races meeting the criteria (started less than 1 minute ago). Because of this we have to overfetch and filter the results on the client side. There's a remote possibility that there are more than 5 races that are returned outside the criteria and we would not have 5 races to show!
+
+The count parameter also selects 10 races from each category, so because we have to sort through the start times on the client side, if all categories are selected we've got 25 races that we don't need.
+
+### Re-rendering
+
+The timer runs on the whole page causing it to re-render every second. The other option would be to run the timer on each row. Decided that re-rendering the whole page with one timer was the better option than re-rendering each row with multiple timers.
+
+### State management
+
+Opted not to use Redux as there's no global state required. Local state was sufficient for the category toggle.
+
+React-query meets all the requirements for calling the API and returning the data in the correct format, as well as easy caching and re-fetching.
