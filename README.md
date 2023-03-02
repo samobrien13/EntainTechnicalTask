@@ -25,6 +25,27 @@ Horse racing: category_id: '4a2788f8-e825-4d36-9894-efd4baf1cfae'
  - Uses Redux
  - Documentation
 
+
+## Setup
+
+### Install dependencies
+
+```bash
+yarn
+```
+
+### Run the app
+
+```bash
+yarn ios
+```
+
+OR 
+
+```bash
+yarn android
+```
+
 ## Trade offs
 
 ### Overfetching
